@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { ArrowLeft, ArrowRight, Home, RefreshCw } from 'lucide-react';
+import { generateComicPanels } from '../api/comic.ts';
 
 interface ComicStripPageProps {
   topic: string;
@@ -17,132 +18,34 @@ interface ComicPanel {
 }
 
 export function ComicStripPage({ topic, onBackToStart }: ComicStripPageProps) {
+  const [panels, setPanels] = useState<ComicPanel[]>([]);
   const [currentPanel, setCurrentPanel] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  // Generate comic panels based on topic
-  const generateComicPanels = (topic: string): ComicPanel[] => {
-    const topicLower = topic.toLowerCase();
-
-    if (topicLower.includes('rain') || topicLower.includes('water')) {
-      return [
-        {
+  useEffect(() => {
+    async function fetchPanels() {
+      setLoading(true);
+      try {
+        const result = await generateComicPanels(topic);
+        setPanels(result);
+      } catch (err) {
+        console.error("Error generating comic:", err);
+        setPanels([{
           id: 1,
-          title: "The Water Cycle Begins",
-          content: "The sun heats up water in oceans, lakes, and rivers. This makes tiny water droplets rise up into the sky!",
-          backgroundColor: "bg-gradient-to-br from-blue-200 to-cyan-100",
-          illustration: "☀️💧🌊"
-        },
-        {
-          id: 2,
-          title: "Clouds Form",
-          content: "High up in the sky, these water droplets get cold and stick together to form fluffy white clouds!",
-          backgroundColor: "bg-gradient-to-br from-gray-100 to-blue-200",
-          illustration: "☁️☁️☁️"
-        },
-        {
-          id: 3,
-          title: "Clouds Get Heavy",
-          content: "More and more water droplets join together in the cloud. The cloud becomes heavy and dark!",
-          backgroundColor: "bg-gradient-to-br from-gray-300 to-gray-400",
-          illustration: "⛈️🌩️"
-        },
-        {
-          id: 4,
-          title: "Rain Falls!",
-          content: "When the cloud can't hold any more water, the droplets fall down as rain! The water returns to Earth.",
-          backgroundColor: "bg-gradient-to-br from-blue-300 to-green-200",
-          illustration: "🌧️🌱🌍"
-        }
-      ];
-    } else if (topicLower.includes('bird') || topicLower.includes('fly')) {
-      return [
-        {
-          id: 1,
-          title: "Special Bird Wings",
-          content: "Birds have amazing wings with feathers! Their wings are curved on top and flatter on the bottom.",
-          backgroundColor: "bg-gradient-to-br from-yellow-200 to-orange-100",
-          illustration: "🐦🪶✨"
-        },
-        {
-          id: 2,
-          title: "Air Moves Differently",
-          content: "When birds flap their wings, air moves faster over the top than the bottom. This creates lift!",
-          backgroundColor: "bg-gradient-to-br from-blue-100 to-sky-200",
-          illustration: "💨🔄🐦"
-        },
-        {
-          id: 3,
-          title: "Up, Up, and Away!",
-          content: "The lift force pushes the bird up into the sky! Birds can control their flight by moving their wings and tail.",
-          backgroundColor: "bg-gradient-to-br from-sky-200 to-blue-300",
-          illustration: "🦅🌤️🏔️"
-        }
-      ];
-    } else if (topicLower.includes('star') || topicLower.includes('space')) {
-      return [
-        {
-          id: 1,
-          title: "Cosmic Gas Clouds",
-          content: "Stars begin as huge clouds of gas and dust floating in space. These clouds are called nebulae!",
-          backgroundColor: "bg-gradient-to-br from-purple-300 to-pink-200",
-          illustration: "🌌✨☁️"
-        },
-        {
-          id: 2,
-          title: "Gravity Pulls Together",
-          content: "Gravity pulls all the gas and dust together, making it spin and get hotter and hotter!",
-          backgroundColor: "bg-gradient-to-br from-orange-200 to-red-200",
-          illustration: "🔥🌀💫"
-        },
-        {
-          id: 3,
-          title: "Nuclear Fusion Begins",
-          content: "When it gets super hot, hydrogen gas starts fusing together, creating enormous amounts of energy!",
-          backgroundColor: "bg-gradient-to-br from-yellow-200 to-white",
-          illustration: "⚛️💥⭐"
-        },
-        {
-          id: 4,
-          title: "A Star is Born!",
-          content: "Now the star shines bright in space! It will keep burning for millions and millions of years!",
-          backgroundColor: "bg-gradient-to-br from-yellow-300 to-gold-200",
-          illustration: "⭐🌟✨"
-        }
-      ];
-    } else {
-      // Default general knowledge comic
-      return [
-        {
-          id: 1,
-          title: "Great Question!",
-          content: `You asked about "${topic}" - that's such a wonderful thing to be curious about!`,
-          backgroundColor: "bg-gradient-to-br from-purple-200 to-pink-100",
-          illustration: "🤔💭❓"
-        },
-        {
-          id: 2,
-          title: "Learning is Fun",
-          content: "Asking questions is how we learn new things! Scientists ask questions all the time.",
-          backgroundColor: "bg-gradient-to-br from-green-200 to-blue-100",
-          illustration: "🔬📚👨‍🔬"
-        },
-        {
-          id: 3,
-          title: "Keep Exploring",
-          content: "The world is full of amazing things to discover! Keep asking questions and learning.",
-          backgroundColor: "bg-gradient-to-br from-yellow-200 to-orange-100",
-          illustration: "🌍🚀🔍"
-        }
-      ];
+          title: "Oops!",
+          content: "We couldn't create your comic right now. Please try again!",
+          backgroundColor: "bg-gradient-to-br from-red-200 to-pink-100",
+          illustration: "😅"
+        }]);
+      }
+      setLoading(false);
     }
-  };
+    fetchPanels();
+  }, [topic]);
 
-  const panels = generateComicPanels(topic);
-
-  // Minimum swipe distance (in px)
   const minSwipeDistance = 50;
 
   const onTouchStart = (e: React.TouchEvent) => {
@@ -156,7 +59,6 @@ export function ComicStripPage({ topic, onBackToStart }: ComicStripPageProps) {
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
@@ -185,36 +87,100 @@ export function ComicStripPage({ topic, onBackToStart }: ComicStripPageProps) {
     setCurrentPanel(index);
   };
 
+  const regenerateComic = async () => {
+    setLoading(true);
+    setCurrentPanel(0);
+    try {
+      const result = await generateComicPanels(topic);
+      setPanels(result);
+    } catch (err) {
+      console.error("Error regenerating comic:", err);
+      setPanels([{
+        id: 1,
+        title: "Oops!",
+        content: "We couldn't create your comic right now. Please try again!",
+        backgroundColor: "bg-gradient-to-br from-red-200 to-pink-100",
+        illustration: "😅"
+      }]);
+    }
+    setLoading(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <div className="p-4 bg-white shadow-sm">
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            <Button
+              onClick={onBackToStart}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2"
+            >
+              <Home className="w-4 h-4" />
+              <span>Ask Another Question</span>
+            </Button>
+            <h1 className="text-xl font-bold text-purple-800 text-center flex-1">
+              Creating Your Comic...
+            </h1>
+            <div className="w-20"></div>
+          </div>
+          {/* Show topic under header while loading */}
+          <div className="text-center mt-2 text-gray-600 italic">
+            Topic: "{topic}"
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-bounce">✨</div>
+            <div className="text-xl font-bold text-purple-700">
+              Making your comic about "{topic}"...
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="p-4 bg-white shadow-sm">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <Button
-            onClick={onBackToStart}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
-            <Home className="w-4 h-4" />
-            <span>Ask Another Question</span>
-          </Button>
-          <h1 className="text-xl font-bold text-purple-800 text-center flex-1">Your Comic Story</h1>
-          <Button
-            onClick={() => window.location.reload()}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
+  <div className="flex items-center justify-between max-w-4xl mx-auto">
+    <Button
+      onClick={onBackToStart}
+      variant="outline"
+      size="sm"
+      className="flex items-center space-x-2"
+    >
+      <Home className="w-4 h-4" />
+      <span>Ask Another Question</span>
+    </Button>
 
-      {/* Comic Strip */}
+    {/* Main title + Topic */}
+    <div className="flex flex-col items-center flex-1">
+      <h1 className="text-xl font-bold text-purple-800">Your Comic Story</h1>
+      <span className="text-xl font-bold text-purple-800">
+        Topic: "{topic}"
+      </span>
+    </div>
+
+    <Button
+      onClick={regenerateComic}
+      variant="outline"
+      size="sm"
+      className="flex items-center space-x-2"
+      disabled={loading}
+    >
+      <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+    </Button>
+  </div>
+</div>
+
+
+      {/* Comic Strip Carousel */}
       <div className="flex-1 p-4">
         <div className="max-w-2xl mx-auto">
-          {/* Custom Carousel */}
           <div className="relative overflow-hidden rounded-xl">
             <div
               ref={carouselRef}
@@ -228,9 +194,17 @@ export function ComicStripPage({ topic, onBackToStart }: ComicStripPageProps) {
                 <div key={panel.id} className="w-full flex-shrink-0 px-2">
                   <Card className={`${panel.backgroundColor} border-4 border-white shadow-2xl min-h-[500px]`}>
                     <CardContent className="p-8 flex flex-col items-center justify-center text-center space-y-6">
-                      <div className="text-6xl mb-4">
-                        {panel.illustration}
-                      </div>
+                      {panel.illustration && panel.illustration.startsWith('http') ? (
+                        <img
+                          src={panel.illustration}
+                          alt={panel.title}
+                          className="w-64 h-64 rounded-xl object-cover shadow-lg mb-4"
+                        />
+                      ) : (
+                        <div className="text-6xl mb-4">
+                          {panel.illustration || '🎨'}
+                        </div>
+                      )}
                       <div className="space-y-4">
                         <h2 className="text-2xl font-bold text-gray-800 mb-4">
                           {panel.title}
@@ -256,8 +230,8 @@ export function ComicStripPage({ topic, onBackToStart }: ComicStripPageProps) {
                 key={index}
                 onClick={() => goToPanel(index)}
                 className={`w-3 h-3 rounded-full transition-colors duration-200 ${
-                  index === currentPanel 
-                    ? 'bg-purple-600' 
+                  index === currentPanel
+                    ? 'bg-purple-600'
                     : 'bg-purple-200 hover:bg-purple-300'
                 }`}
                 aria-label={`Go to panel ${index + 1}`}
@@ -265,7 +239,7 @@ export function ComicStripPage({ topic, onBackToStart }: ComicStripPageProps) {
             ))}
           </div>
 
-          {/* Navigation Controls */}
+          {/* Navigation */}
           <div className="flex justify-center space-x-4 mt-8">
             <Button
               onClick={prevPanel}
@@ -288,8 +262,7 @@ export function ComicStripPage({ topic, onBackToStart }: ComicStripPageProps) {
               <ArrowRight className="w-5 h-5" />
             </Button>
           </div>
-          
-          {/* Swipe Instructions */}
+
           <div className="text-center mt-4">
             <p className="text-sm text-gray-500">
               💡 Swipe left or right to navigate between panels
